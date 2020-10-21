@@ -39,10 +39,10 @@ class VisionTransformer(nn.Module):
         # x is N-sized batch of M HxW patches; splitting images into
         # patches must happen in transforms to not block the mainloop
 
-        N, C, M, H, W = x.size()
+        N, M, C, H, W = x.size()
 
         # Flatten and project the patches
-        x = rearrange(x, "n c m h w -> n m (c h w)")
+        x = rearrange(x, "n m c h w -> n m (c h w)")
         x = self.patch_projection(x)
 
         # Learnable token to classify
@@ -50,7 +50,7 @@ class VisionTransformer(nn.Module):
         x = torch.cat([c, x], dim=1)
 
         # Augment with patch positions
-        p = torch.arange(0, M + 1).repeat(N, 1)
+        p = torch.arange(0, M + 1).repeat(N, 1).to(x.device)
         p = self.positional_embedding(p)
 
         x = x + p
