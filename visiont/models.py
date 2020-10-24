@@ -26,7 +26,7 @@ class VisionTransformer(nn.Module):
 
         # Standard transformer encoder, baseline defaults
         self.enc = nn.TransformerEncoder(num_layers=12,
-                encoder_layer=nn.TransformerEncoderLayer(D, nhead=12, dim_feedforward=3072))
+                encoder_layer=nn.TransformerEncoderLayer(D, nhead=12, dim_feedforward=3072, activation="gelu"))
 
         # Final classification head
         self.final = nn.Sequential(
@@ -36,13 +36,12 @@ class VisionTransformer(nn.Module):
 
 
     def forward(self, x):
-        # x is N-sized batch of M HxW patches; splitting images into
+        # x is N-sized batch of M P-sized patches; splitting images into
         # patches must happen in transforms to not block the mainloop
 
-        N, M, C, H, W = x.size()
+        N, M, P = x.size()
 
-        # Flatten and project the patches
-        x = rearrange(x, "n m c h w -> n m (c h w)")
+        # Project the patches
         x = self.patch_projection(x)
 
         # Learnable token to classify
