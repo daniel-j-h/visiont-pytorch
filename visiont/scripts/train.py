@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim
 import torch.backends.cudnn
 from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms import Compose, Normalize, ToTensor, Resize, RandomCrop, RandomHorizontalFlip, RandomApply, RandomGrayscale, ColorJitter
+from torchvision.transforms import Compose, Normalize, ToTensor, Resize, RandomCrop, RandomHorizontalFlip, RandomApply, RandomGrayscale, ColorJitter, GaussianBlur
 from einops.layers.torch import Rearrange
 from PIL import Image
 from tqdm import tqdm
@@ -93,11 +93,12 @@ def main(args):
 
     transform = Compose([
         Convert("RGB"),
-        Resize(512),
+        Resize(1024),
         RandomCrop(224),
-        RandomHorizontalFlip(),
-        RandomApply([ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1)]),
-        RandomGrayscale(),
+        RandomHorizontalFlip(p=0.5),
+        RandomApply([ColorJitter(brightness=0.8, contrast=0.8, saturation=0.8, hue=0.2)], p=0.8),
+        RandomApply([GaussianBlur((3, 3), (1.5, 1.5))], p=0.1),
+        RandomGrayscale(p=0.2),
         ToTensor(),
         Normalize(mean=mean, std=std),
         ToPatches(16)])
@@ -116,8 +117,10 @@ def main(args):
     target = VisionTransformer(num_classes=1, C=3, H=224, W=224, P=16)
 
     # Projection heads for both networks
-    online.final = mlp(768, 4096, 256)
-    target.final = mlp(768, 4096, 256)
+    #online.final = mlp(768, 4096, 256)
+    #target.final = mlp(768, 4096, 256)
+    online.final = nn.Identity()
+    target.final = nn.Identity()
 
     # Target network does not learn on its own.
     # Gets average of online network's weights.
@@ -133,7 +136,8 @@ def main(args):
 
     # In addition to projection heads,
     # The online network has predictor.
-    predictor = mlp(256, 4096, 256)
+    #predictor = mlp(256, 4096, 256)
+    predictor = mlp(768, 4096, 768)
 
     # Move everything to devices
 
@@ -151,10 +155,11 @@ def main(args):
         y = nn.functional.normalize(y, dim=-1)
         return 2 - 2 * (x * y).sum(dim=-1)
 
-    lr = 1e-4
+    lr = 1e-5
 
     # Online and predictor learns, target gets assigned moving average of online network's weights.
-    optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
+    #optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
+    optimizer = torch.optim.SGD(list(online.parameters()) + list(predictor.parameters()), lr=lr)
 
     # Warmup Adam, he cold
     def adjust_learning_rate(optimizer, step, lr):
@@ -212,4 +217,4 @@ def main(args):
 
             step += 1
 
-        #torch.save(online.state_dict(), f"vt-{epoch + 1:03d}.pth")
+        torch.save(online.state_dict(), f"vt-{epoch + 1:03d}.pth")
