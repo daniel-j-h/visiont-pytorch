@@ -4,8 +4,12 @@ services:
 
   dev:
     build: .
+    ipc: host
+    runtime: nvidia
     volumes:
       - ./pyproject.toml:/home/python/app/pyproject.toml
       - ./poetry.lock:/home/python/app/poetry.lock
       - ./.flake8:/home/python/app/.flake8
       - ./visiont:/home/python/app/visiont
+      - /tmp:/data
+      - /nas:/nas
