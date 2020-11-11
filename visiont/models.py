@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from einops import rearrange
-
 
 # An Image Is Worth 16x16 Words: Transformers For Image Recognition At Scale
 # https://openreview.net/pdf?id=YicbFdNTTy
@@ -25,21 +23,23 @@ class VisionTransformer(nn.Module):
         self.class_token = nn.Parameter(torch.rand(D))
 
         # Standard transformer encoder, baseline defaults
-        self.enc = nn.TransformerEncoder(num_layers=12,
-                encoder_layer=nn.TransformerEncoderLayer(D, nhead=12, dim_feedforward=3072, activation="gelu"))
+        self.enc = nn.TransformerEncoder(
+            num_layers=6,
+            encoder_layer=nn.TransformerEncoderLayer(
+                D, nhead=6, dim_feedforward=768, activation="gelu"
+            ),
+        )
 
         # Final classification head
         self.final = nn.Sequential(
-                nn.Linear(D, D * 4),
-                nn.GELU(),
-                nn.Linear(D * 4, num_classes))
-
+            nn.Linear(D, D * 4), nn.GELU(), nn.Linear(D * 4, num_classes)
+        )
 
     def forward(self, x):
         # x is N-sized batch of M P-sized patches; splitting images into
         # patches must happen in transforms to not block the mainloop
 
-        N, M, P = x.size()
+        N, T, D = x.size()
 
         # Project the patches
         x = self.patch_projection(x)
@@ -49,7 +49,7 @@ class VisionTransformer(nn.Module):
         x = torch.cat([c, x], dim=1)
 
         # Augment with patch positions
-        p = torch.arange(0, M + 1).repeat(N, 1).to(x.device)
+        p = torch.arange(0, T + 1).repeat(N, 1).to(x.device)
         p = self.positional_embedding(p)
 
         x = x + p

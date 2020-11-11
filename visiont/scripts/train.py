@@ -127,7 +127,6 @@ def main(args):
             RandomGrayscale(p=0.5),
             RandomRotation(degrees=(-10, 10)),
             ToTensor(),
-            Normalize(mean=mean, std=std),
             RandomErasing(p=0.5),
             ToPatches(16),
         ]
@@ -141,7 +140,7 @@ def main(args):
     # TODO: hard coded for now, works on my 2x Titan RTX machine
     loader = DataLoader(
         dataset,
-        batch_size=32,
+        batch_size=128,
         num_workers=40,
         shuffle=True,
         pin_memory=True,

@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import visiont.scripts.train
+import visiont.scripts.val
 import visiont.scripts.data_gen
 
 
@@ -16,6 +17,11 @@ def main():
     train = subcmd.add_parser(
         "train", help="trains the vision transformer", formatter_class=Formatter
     )
+    val = subcmd.add_parser(
+        "val",
+        help="validates the trained vision transformer",
+        formatter_class=Formatter,
+    )
     data_gen = subcmd.add_parser(
         "generate",
         help="generates data to see training sample diversity",
@@ -27,6 +33,20 @@ def main():
         dest="dataset",
         type=Path,
         help="path to ImageNet-like dataset directory",
+    )
+    val.add_argument(
+        "-d",
+        "--dataset",
+        dest="dataset",
+        type=Path,
+        help="path to ImageNet-like dataset directory",
+    )
+    val.add_argument(
+        "-w",
+        "--weights",
+        dest="weights",
+        type=Path,
+        help="pre-trained model weights",
     )
     data_gen.add_argument(
         "-d",
@@ -51,6 +71,7 @@ def main():
     )
 
     train.set_defaults(main=visiont.scripts.train.main)
+    val.set_defaults(main=visiont.scripts.val.main)
     data_gen.set_defaults(main=visiont.scripts.data_gen.main)
 
     args = parser.parse_args()

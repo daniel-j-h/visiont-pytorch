@@ -39,7 +39,7 @@ def main(args):
         [
             Convert("RGB"),
             Resize(1024),
-            RandomCrop(640),
+            RandomCrop(800),
             RandomHorizontalFlip(p=0.5),
             RandomApply(
                 [ColorJitter(brightness=0.8, contrast=0.8, saturation=0.8, hue=0.2)],
