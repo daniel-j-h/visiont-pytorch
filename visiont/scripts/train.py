@@ -28,7 +28,6 @@ class ImageDirectory(Dataset):
     def __getitem__(self, i):
         path = str(self.paths[i])
 
-        # TODO: don't copy the image itself to save on resources
         image1 = Image.open(path)
         image2 = image1.copy()
 
@@ -155,7 +154,7 @@ def main(args):
         y = nn.functional.normalize(y, dim=-1)
         return 2 - 2 * (x * y).sum(dim=-1)
 
-    lr = 1e-5
+    lr = 1e-4
 
     # Online and predictor learns, target gets assigned moving average of online network's weights.
     #optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
