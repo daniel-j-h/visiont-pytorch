@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim
+import torch.cuda.amp
 import torch.backends.cudnn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, Normalize, ToTensor, Resize, RandomCrop, RandomHorizontalFlip, RandomApply, RandomGrayscale, ColorJitter, GaussianBlur
@@ -108,7 +109,7 @@ def main(args):
     dataset = ImageDirectory(args.dataset, transform, transform)
 
     # TODO: hard coded for now, works on my 2x Titan RTX machine
-    loader = DataLoader(dataset, batch_size=112, num_workers=40, shuffle=True, pin_memory=True, drop_last=True)
+    loader = DataLoader(dataset, batch_size=160, num_workers=40, shuffle=True, pin_memory=True, drop_last=True)
 
     # We will chop off the final layer anyway,
     # therefore num_classes doesn't matter here.
@@ -165,6 +166,8 @@ def main(args):
         for g in optimizer.param_groups:
             g["lr"] = min(1, (step + 1) / 1000) * lr
 
+    scaler = torch.cuda.amp.GradScaler()
+
     step = 0
 
     for epoch in range(100):
@@ -183,26 +186,29 @@ def main(args):
 
             optimizer.zero_grad()
 
-            # Target network is in eval mode and does not
-            # require grads, forward no grad ctx to be sure
-            with torch.no_grad():
-                labels1 = target(inputs1).detach()
-                labels2 = target(inputs2).detach()
+            with torch.cuda.amp.autocast():
+                # Target network is in eval mode and does not
+                # require grads, forward no grad ctx to be sure
+                with torch.no_grad():
+                    labels1 = target(inputs1).detach()
+                    labels2 = target(inputs2).detach()
 
-            outputs1 = predictor(online(inputs1))
-            outputs2 = predictor(online(inputs2))
+                outputs1 = predictor(online(inputs1))
+                outputs2 = predictor(online(inputs2))
 
-            # Symmetrize the loss, both transformations
-            # go through both networks, one at a time
-            loss = criterion(outputs1, labels2) + criterion(outputs2, labels1)
-            loss = loss.mean()
+                # Symmetrize the loss, both transformations
+                # go through both networks, one at a time
+                loss = criterion(outputs1, labels2) + criterion(outputs2, labels1)
+                loss = loss.mean()
 
-            loss.backward()
+            scaler.scale(loss).backward()
 
             # Transformers need their nails clipped
+            scaler.unscale_(optimizer)
             nn.utils.clip_grad_norm_(online.parameters(), 1)
 
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             # After training the online network, we transfer
             # a weighted average of the weights to the target

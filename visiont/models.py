@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.cuda.amp
 
 from einops import rearrange
 
@@ -35,6 +36,7 @@ class VisionTransformer(nn.Module):
                 nn.Linear(D * 4, num_classes))
 
 
+    @torch.cuda.amp.autocast()
     def forward(self, x):
         # x is N-sized batch of M P-sized patches; splitting images into
         # patches must happen in transforms to not block the mainloop
