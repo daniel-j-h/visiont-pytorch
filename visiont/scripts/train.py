@@ -102,12 +102,12 @@ def main(args):
         torch.backends.cudnn.benchmark = True
 
     # ImageNet stats for now
-    mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    # mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     # Hard coding warm startup
     warmup_steps = 128
-    # Updated target every 2 updates of online
-    target_update_steps = 2
+    # Updated target every 16 updates of online
+    target_update_steps = 16
 
     # Things to add RandomPerspective, RandomAffine instead of rotation
     # Random apply all transforms which is equivalent to a sampling them from
@@ -205,9 +205,9 @@ def main(args):
             g["lr"] = min(1, (step + 1) / 1000) * lr
 
     step = 0
+    running = 0
 
     for epoch in range(100):
-        running = 0
 
         progress = tqdm(loader, desc=f"Epoch {epoch+1}", unit="batch")
 
@@ -248,15 +248,13 @@ def main(args):
             # a weighted average of the weights to the target
             # Only apply warmup criterion on epoc == 0
             # Update target network so if "lags" the online network
-            if idx > warmup_steps and epoch == 0:
-                update_target()
-            elif idx % target_update_steps == 0 and epoch > 0:
+            if step > warmup_steps and step % target_update_steps == 0:
                 update_target()
 
             running += loss.item() * inputs1.size(0)
 
             if step % 100 == 0:
-                progress.write(f"loss: {running / 100}")
+                progress.write(f"[{step}] loss : {running / 100}")
                 running = 0
 
             step += 1

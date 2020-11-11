@@ -38,7 +38,6 @@ class VisionTransformer(nn.Module):
     def forward(self, x):
         # x is N-sized batch of M P-sized patches; splitting images into
         # patches must happen in transforms to not block the mainloop
-
         N, T, D = x.size()
 
         # Project the patches

@@ -37,6 +37,12 @@ visiont train --dataset /nas/3rd_party/openimagesV6/train
 visiont generate -d /nas/3rd_party/openimagesV6/validation -l /nas/team-space/experiments/vision-t/09-11-2010/samples -n 100
 ```
 
+### Validation step is the world is collapsing
+```sh
+ val --dataset /nas/3rd_party/openimagesV6/validation --weights /nas/team-space/experiments/vision-t/1-11-2010-db23f55/vt-010.pth
+```
+
+
 ## License
 
 Copyright © 2020 Daniel J. Hofmann
