@@ -3,62 +3,13 @@ import torch.nn as nn
 import torch.optim
 import torch.cuda.amp
 import torch.backends.cudnn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor, Resize, RandomCrop, RandomHorizontalFlip, RandomApply, RandomGrayscale, ColorJitter, GaussianBlur
-from einops.layers.torch import Rearrange
-from PIL import Image
 from tqdm import tqdm
 
 from visiont.models import VisionTransformer
-
-
-# Simple directory image loader, applying two transforms
-# on each loaded image and returning both transformations.
-class ImageDirectory(Dataset):
-    def __init__(self, root, transform1=None, transform2=None):
-        super().__init__()
-
-        self.paths = sorted([p for p in root.iterdir() if p.is_file()])
-
-        self.transform1 = transform1
-        self.transform2 = transform2
-
-    def __len__(self):
-        return len(self.paths)
-
-    def __getitem__(self, i):
-        path = str(self.paths[i])
-
-        image1 = Image.open(path)
-        image2 = image1.copy()
-
-        if self.transform1 is not None:
-            image1 = self.transform1(image1)
-
-        if self.transform2 is not None:
-            image2 = self.transform2(image2)
-
-        return image1, image2
-
-
-# Transforms an image into a collection of
-# the image's patches of a specific size.
-class ToPatches:
-    def __init__(self, size):
-        self.rearrange = Rearrange("c (h p1) (w p2) -> (h w) (p1 p2 c)", p1=size, p2=size)
-
-    def __call__(self, x):
-        return self.rearrange(x)
-
-
-# Transforms an image's mode, see
-# PIL's image modes e.g. "RGB".
-class Convert:
-    def __init__(self, mode):
-        self.mode = mode
-
-    def __call__(self, x):
-        return x.convert(self.mode)
+from visiont.datasets import ImageDirectory
+from visiont.transforms import ToImageMode, ToPatches
 
 
 # Updates a destination network's weights
@@ -92,7 +43,7 @@ def main(args):
     mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     transform = Compose([
-        Convert("RGB"),
+        ToImageMode("RGB"),
         Resize(1024),
         RandomCrop(224),
         RandomHorizontalFlip(p=0.5),
@@ -169,9 +120,9 @@ def main(args):
     scaler = torch.cuda.amp.GradScaler()
 
     step = 0
+    running = 0
 
     for epoch in range(100):
-        running = 0
 
         progress = tqdm(loader, desc=f"Epoch {epoch+1}", unit="batch")
 
@@ -206,6 +157,7 @@ def main(args):
             # Transformers need their nails clipped
             scaler.unscale_(optimizer)
             nn.utils.clip_grad_norm_(online.parameters(), 1)
+            nn.utils.clip_grad_norm_(predictor.parameters(), 1)
 
             scaler.step(optimizer)
             scaler.update()
