@@ -239,8 +239,7 @@ def main(args):
 
             # Transformers need their nails clipped
             # Harsimrat := best comment of 2020
-            nn.utils.clip_grad_norm_(online.parameters(), 1)
-            nn.utils.clip_grad_norm_(predictor.parameters(), 1)
+            nn.utils.clip_grad_norm_(online.parameters() + predictor.parameters(), 1)
 
             optimizer.step()
 
