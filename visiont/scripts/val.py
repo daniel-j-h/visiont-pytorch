@@ -5,6 +5,7 @@ import torch.backends.cudnn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import (
     Compose,
+    Normalize,
     ToTensor,
     Resize,
     RandomCrop,
@@ -103,15 +104,6 @@ def main(args):
     # ImageNet stats for now
     # mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
-    # Hard coding warm startup
-    warmup_steps = 128
-    # Updated target every 16 updates of online
-    target_update_steps = 16
-
-    # Things to add RandomPerspective, RandomAffine instead of rotation
-    # Random apply all transforms which is equivalent to a sampling them from
-    # Bornoulli distribution
-
     transform = Compose(
         [
             Convert("RGB"),
@@ -139,7 +131,7 @@ def main(args):
     # TODO: hard coded for now, works on my 2x Titan RTX machine
     loader = DataLoader(
         dataset,
-        batch_size=128,
+        batch_size=32,
         num_workers=40,
         shuffle=True,
         pin_memory=True,
@@ -148,118 +140,41 @@ def main(args):
 
     # We will chop off the final layer anyway,
     # therefore num_classes doesn't matter here.
-    online = VisionTransformer(num_classes=1, C=3, H=224, W=224, P=16)
-    target = VisionTransformer(num_classes=1, C=3, H=224, W=224, P=16)
-
-    # Projection heads for both networks
-    # online.final = mlp(768, 4096, 256)
-    # target.final = mlp(768, 4096, 256)
-
-    online.final = nn.Identity()
-    target.final = nn.Identity()
-
+    model = VisionTransformer(num_classes=1, C=3, H=224, W=224, P=16)
+    model.final = nn.Identity()
     # Target network does not learn on its own.
     # Gets average of online network's weights.
 
-    online.train()
-    target.eval()
+    model = nn.DataParallel(model)
+    model.load_state_dict(torch.load(args.weights.as_posix()))
+    model = model.to(device)
+    model.eval()
 
-    for param in target.parameters():
-        param.requires_grad = False
+    progress = tqdm(loader, unit="batch")
 
-    def update_target():
-        update(target, online, 0.99)
-
-    # In addition to projection heads,
-    # The online network has predictor.
-    # predictor = mlp(256, 4096, 256)
-    predictor = mlp(768, 4096, 768)
-
-    # Move everything to devices
-
-    online = online.to(device)
-    online = nn.DataParallel(online)
-
-    predictor = predictor.to(device)
-    predictor = nn.DataParallel(predictor)
-
-    target = target.to(device)
-    target = nn.DataParallel(target)
-
-    def criterion(x, y):
+    def scores(x, y):
+        x = x.view(x.shape[0], -1)
+        y = y.view(y.shape[0], -1)
         x = nn.functional.normalize(x, dim=-1)
         y = nn.functional.normalize(y, dim=-1)
-        return 2 - 2 * (x * y).sum(dim=-1)
+        return 2 - 2 * torch.matmul(x, torch.transpose(y, 0, 1))
 
-    lr = 1e-4
+    expected = torch.arange(0, 32).to(device)
 
-    # Online and predictor learns, target gets assigned moving average of online network's weights.
-    # optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
-    optimizer = torch.optim.SGD(
-        list(online.parameters()) + list(predictor.parameters()), lr=lr
-    )
+    for (inputs1, inputs2) in progress:
+        assert inputs1.size() == inputs2.size()
 
-    # Warmup Adam, he cold
-    def adjust_learning_rate(optimizer, step, lr):
-        for g in optimizer.param_groups:
-            g["lr"] = min(1, (step + 1) / 1000) * lr
+        # Overlap data transfers to gpus, pinned memory
+        inputs1 = inputs1.to(device, non_blocking=True)
+        inputs2 = inputs2.to(device, non_blocking=True)
 
-    scaler = torch.cuda.amp.GradScaler()
+        with torch.no_grad():
+            feat_0 = model(inputs1).detach()
+            feat_1 = model(inputs2).detach()
+            distances = scores(feat_0, feat_1)
+            import pdb
 
-    step = 0
-    running = 0
+            pdb.set_trace()
+            miss = distances.argsort(axis=1)[:, 0] - expected
 
-    for epoch in range(100):
-
-        progress = tqdm(loader, desc=f"Epoch {epoch+1}", unit="batch")
-
-        for inputs1, inputs2 in progress:
-            assert inputs1.size() == inputs2.size()
-
-            # Overlap data transfers to gpus, pinned memory
-            inputs1 = inputs1.to(device, non_blocking=True)
-            inputs2 = inputs2.to(device, non_blocking=True)
-
-            adjust_learning_rate(optimizer, step, lr)
-
-            optimizer.zero_grad()
-
-            with torch.cuda.amp.autocast():
-                # Target network is in eval mode and does not
-                # require grads, forward no grad ctx to be sure
-                with torch.no_grad():
-                    labels1 = target(inputs1).detach()
-                    labels2 = target(inputs2).detach()
-
-                outputs1 = predictor(online(inputs1))
-                outputs2 = predictor(online(inputs2))
-
-                # Symmetrize the loss, both transformations
-                # go through both networks, one at a time
-                loss = criterion(outputs1, labels2) + criterion(outputs2, labels1)
-                loss = loss.mean()
-
-            scaler.scale(loss).backward()
-
-            # Transformers need their nails clipped
-            scaler.unscale_(optimizer)
-            nn.utils.clip_grad_norm_(online.parameters(), 1)
-            nn.utils.clip_grad_norm_(predictor.parameters(), 1)
-
-            scaler.step(optimizer)
-            scaler.update()
-
-            # After training the online network, we transfer
-            # a weighted average of the weights to the target
-            if step > warmup_steps and step % target_update_steps == 0:
-                update_target()
-
-            running += loss.item() * inputs1.size(0)
-
-            if step % 100 == 0:
-                progress.write(f"[{step}] loss : {running / 100}")
-                running = 0
-
-            step += 1
-
-        torch.save(online.state_dict(), f"vt-{epoch + 1:03d}.pth")
+        progress.set_description(f"mean rank {miss.mean()}")

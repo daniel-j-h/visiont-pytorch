@@ -39,7 +39,7 @@ visiont generate -d /nas/3rd_party/openimagesV6/validation -l /nas/team-space/ex
 
 ### Validation step if the world is collapsing
 ```sh
- val --dataset /nas/3rd_party/openimagesV6/validation --weights /nas/team-space/experiments/vision-t/1-11-2010-db23f55/vt-010.pth
+ visiont val --dataset /nas/3rd_party/openimagesV6/validation --weights /nas/team-space/experiments/vision-t/1-11-2010-db23f55/vt-010.pth
 ```
 
 

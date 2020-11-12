@@ -11,7 +11,7 @@ einops = "^0.3.0"
 torch = "^1.7.0"
 torchvision = "^0.8.1"
 tqdm = "^4.50.2"
-scikit-image = "^0.17.2"
+scikit-image = "^0.16.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"
