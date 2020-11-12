@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import numpy as np
 
+from einops.layers.torch import Rearrange
 from torch.utils.data import DataLoader
 from torchvision.transforms import (
     Compose,
@@ -20,15 +21,27 @@ from skimage.io import imsave
 from visiont.scripts.train import ImageDirectory, Convert
 
 
+class ToPatches:
+    def __init__(self, size):
+        self.rearrange = Rearrange("c (h p1) (w p2) -> (h w) p1 p2 c", p1=size, p2=size)
+
+    def __call__(self, x):
+        return self.rearrange(x)
+
+
 def save_samples(image1, image2, idx, path):
     def save_tensor_to_image(fpath, img):
-        img = img.squeeze(0)
         arr = img.cpu().numpy()
-        arr = (np.transpose(arr, (1, 2, 0)) * 255).astype(np.uint8)
+        arr = (arr * 255).astype(np.uint8)
         imsave(fpath.as_posix(), arr)
 
-    save_tensor_to_image(path.joinpath(f"{idx:06}-1.jpg"), image1)
-    save_tensor_to_image(path.joinpath(f"{idx:06}-2.jpg"), image2)
+    image1 = image1.squeeze(0)
+    image2 = image2.squeeze(0)
+
+    for idy, img in enumerate(image1):
+        save_tensor_to_image(path.joinpath(f"1-{idx:06}-{idy:03}.jpg"), img)
+    for idy, img in enumerate(image2):
+        save_tensor_to_image(path.joinpath(f"2-{idx:06}-{idy:03}.jpg"), img)
 
 
 def main(args):
@@ -50,6 +63,7 @@ def main(args):
             RandomRotation(degrees=(-10, 10)),
             ToTensor(),
             RandomErasing(p=0.5),
+            ToPatches(80),
         ]
     )
 

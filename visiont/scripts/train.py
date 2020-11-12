@@ -5,7 +5,6 @@ import torch.backends.cudnn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import (
     Compose,
-    Normalize,
     ToTensor,
     Resize,
     RandomCrop,
@@ -241,6 +240,7 @@ def main(args):
             # Transformers need their nails clipped
             # Harsimrat := best comment of 2020
             nn.utils.clip_grad_norm_(online.parameters(), 1)
+            nn.utils.clip_grad_norm_(predictor.parameters(), 1)
 
             optimizer.step()
 
