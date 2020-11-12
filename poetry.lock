@@ -22,6 +22,16 @@ name = "dataclasses"
 version = "0.6"
 description = "A backport of the dataclasses module for Python 3.6"
 category = "main"
+description = "A backport of the dataclasses module for Python 3.6"
+name = "dataclasses"
+optional = false
+python-versions = "*"
+version = "0.6"
+
+[[package]]
+category = "main"
+description = "A new flavour of deep learning operations"
+name = "einops"
 optional = false
 python-versions = "*"
 
@@ -155,6 +165,16 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+category = "main"
+description = "Python Imaging Library (Fork)"
+name = "pillow"
+optional = false
+python-versions = ">=3.6"
+version = "8.0.0"
+
+[[package]]
+category = "dev"
+description = "Python style guide checker"
 name = "pycodestyle"
 version = "2.6.0"
 description = "Python style guide checker"
@@ -263,6 +283,7 @@ description = "Tensors and Dynamic neural networks in Python with strong GPU acc
 category = "main"
 optional = false
 python-versions = ">=3.6.1"
+version = "1.7.0"
 
 [package.dependencies]
 dataclasses = "*"
@@ -271,12 +292,12 @@ numpy = "*"
 typing-extensions = "*"
 
 [[package]]
-name = "torchvision"
-version = "0.8.1"
-description = "image and video datasets and models for torch deep learning"
 category = "main"
+description = "image and video datasets and models for torch deep learning"
+name = "torchvision"
 optional = false
 python-versions = "*"
+version = "0.8.1"
 
 [package.dependencies]
 numpy = "*"
@@ -287,45 +308,34 @@ torch = "1.7.0"
 scipy = ["scipy"]
 
 [[package]]
-name = "tqdm"
-version = "4.50.2"
-description = "Fast, Extensible Progress Meter"
 category = "main"
+description = "Fast, Extensible Progress Meter"
+name = "tqdm"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
+version = "4.50.2"
 
 [package.extras]
 dev = ["py-make (>=0.1.0)", "twine", "argopt", "pydoc-markdown"]
 
 [[package]]
-name = "typing-extensions"
-version = "3.7.4.3"
-description = "Backported and Experimental Type Hints for Python 3.5+"
 category = "main"
+description = "Backported and Experimental Type Hints for Python 3.5+"
+name = "typing-extensions"
 optional = false
 python-versions = "*"
+version = "3.7.4.3"
 
 [metadata]
-lock-version = "1.1"
+content-hash = "29cb9b9a830b80433b4e867db156f1a60618fe14bce14bff84077abeeb62ac06"
+lock-version = "1.0"
 python-versions = "^3.8"
 content-hash = "6c4efd431ccabfbbabaf12e82e087a34902b61c6a7bea435e86d65c99c8a5db2"
 
 [metadata.files]
-certifi = [
-    {file = "certifi-2020.11.8-py2.py3-none-any.whl", hash = "sha256:1f422849db327d534e3d0c5f02a263458c3955ec0aae4ff09b95f195c59f4edd"},
-    {file = "certifi-2020.11.8.tar.gz", hash = "sha256:f05def092c44fbf25834a51509ef6e631dc19765ab8a57b4e7ab85531f0a9cf4"},
-]
-cycler = [
-    {file = "cycler-0.10.0-py2.py3-none-any.whl", hash = "sha256:1d8a5ae1ff6c5cf9b93e8811e581232ad8920aeec647c37316ceac982b08cb2d"},
-    {file = "cycler-0.10.0.tar.gz", hash = "sha256:cd7b2d1018258d7247a71425e9f26463dfb444d411c39569972f4ce586b0c9d8"},
-]
 dataclasses = [
     {file = "dataclasses-0.6-py3-none-any.whl", hash = "sha256:454a69d788c7fda44efd71e259be79577822f5e3f53f029a22d08004e951dc9f"},
     {file = "dataclasses-0.6.tar.gz", hash = "sha256:6988bd2b895eef432d562370bb707d540f32f7360ab13da45340101bc2307d84"},
-]
-decorator = [
-    {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
-    {file = "decorator-4.4.2.tar.gz", hash = "sha256:e3a62f0520172440ca0dcc823749319382e377f37f140a0b99ef45fecb84bfe7"},
 ]
 einops = [
     {file = "einops-0.3.0-py2.py3-none-any.whl", hash = "sha256:a91c6190ceff7d513d74ca9fd701dfa6a1ffcdd98ea0ced14350197c07f75c73"},

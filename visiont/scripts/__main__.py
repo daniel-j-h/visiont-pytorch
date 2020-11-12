@@ -5,7 +5,6 @@ import visiont.scripts.train
 import visiont.scripts.val
 import visiont.scripts.data_gen
 
-
 def main():
     parser = argparse.ArgumentParser(prog="vision-transformer")
 
@@ -73,7 +72,7 @@ def main():
     train.set_defaults(main=visiont.scripts.train.main)
     val.set_defaults(main=visiont.scripts.val.main)
     data_gen.set_defaults(main=visiont.scripts.data_gen.main)
-
+    
     args = parser.parse_args()
     args.main(args)
 
