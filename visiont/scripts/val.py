@@ -76,14 +76,6 @@ class Convert:
         return x.convert(self.mode)
 
 
-# Simple MLP following the transformer
-# architecture's choices of layers.
-def mlp(fin, fmid, fout):
-    return nn.Sequential(
-        nn.Linear(fin, fmid), nn.LayerNorm(fmid), nn.GELU(), nn.Linear(fmid, fout)
-    )
-
-
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
