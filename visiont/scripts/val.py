@@ -76,17 +76,6 @@ class Convert:
         return x.convert(self.mode)
 
 
-# Updates a destination network's weights
-# with a linear combination of
-#   r * destination + (1 - r) * source
-# Requires networks of same architectures.
-def update(dst, src, r):
-    assert 0 < r < 1
-
-    for dp, sp in zip(dst.parameters(), src.parameters()):
-        dp.data.copy_(r * dp.data + (1 - r) * sp.data)
-
-
 # Simple MLP following the transformer
 # architecture's choices of layers.
 def mlp(fin, fmid, fout):

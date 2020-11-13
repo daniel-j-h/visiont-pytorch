@@ -115,7 +115,7 @@ def main(args):
     transform = Compose(
         [
             Convert("RGB"),
-            Resize(300),
+            Resize(1024),
             RandomCrop(224),
             RandomHorizontalFlip(p=0.5),
             RandomApply(
