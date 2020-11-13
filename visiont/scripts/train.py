@@ -104,9 +104,9 @@ def main(args):
     # mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     # Hard coding warm startup
-    warmup_steps = 0
+    warmup_steps = 128
     # Updated target every 16 updates of online
-    target_update_steps = 1
+    target_update_steps = 16
 
     # Things to add RandomPerspective, RandomAffine instead of rotation
     # Random apply all transforms which is equivalent to a sampling them from
