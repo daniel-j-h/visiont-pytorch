@@ -60,7 +60,7 @@ def main(args):
     dataset = ImageDirectory(args.dataset, transform, transform)
 
     # TODO: hard coded for now, works on my 2x Titan RTX machine
-    loader = DataLoader(dataset, batch_size=160, num_workers=40, shuffle=True, pin_memory=True, drop_last=True)
+    loader = DataLoader(dataset, batch_size=144, num_workers=40, shuffle=True, pin_memory=True, drop_last=True)
 
     # We will chop off the final layer anyway,
     # therefore num_classes doesn't matter here.
@@ -106,24 +106,20 @@ def main(args):
         y = nn.functional.normalize(y, dim=-1)
         return 2 - 2 * (x * y).sum(dim=-1)
 
-    lr = 1e-4
-
     # Online and predictor learns, target gets assigned moving average of online network's weights.
-    #optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
-    optimizer = torch.optim.SGD(list(online.parameters()) + list(predictor.parameters()), lr=lr)
 
-    # Warmup Adam, he cold
-    def adjust_learning_rate(optimizer, step, lr):
-        for g in optimizer.param_groups:
-            g["lr"] = min(1, (step + 1) / 1000) * lr
+    lr = 0.1
+    epochs = 15
+
+    optimizer = torch.optim.SGD(list(online.parameters()) + list(predictor.parameters()), lr=lr, momentum=0.9)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, steps_per_epoch=len(loader), epochs=epochs)
 
     scaler = torch.cuda.amp.GradScaler()
 
     step = 0
     running = 0
 
-    for epoch in range(100):
-
+    for epoch in range(epochs):
         progress = tqdm(loader, desc=f"Epoch {epoch+1}", unit="batch")
 
         for inputs1, inputs2 in progress:
@@ -132,8 +128,6 @@ def main(args):
             # Overlap data transfers to gpus, pinned memory
             inputs1 = inputs1.to(device, non_blocking=True)
             inputs2 = inputs2.to(device, non_blocking=True)
-
-            adjust_learning_rate(optimizer, step, lr)
 
             optimizer.zero_grad()
 
@@ -161,6 +155,8 @@ def main(args):
 
             scaler.step(optimizer)
             scaler.update()
+
+            scheduler.step()
 
             # After training the online network, we transfer
             # a weighted average of the weights to the target
