@@ -2,7 +2,8 @@
 
 [Vision Transformer](https://openreview.net/forum?id=YicbFdNTTy) (ICLR 2021 submission) in PyTorch.
 
-The vision transformer is a promising new direction for vision tasks. It manages to get rid of convolutions, using only the transformer architecture from [Attention Is All You Need](https://arxiv.org/abs/1706.03762) as building block.
+**Real Talk**. This is not production ready, and not meant to be; it's a playground for ideas and implementations. Please don't use it for anything serious; please do use it for inspiration.
+The vision transformer is a promising new direction for vision tasks. It manages to get rid of convolutions, using only the transformer architecture from [Attention Is All You Need](https://arxiv.org/abs/1706.03762) as building block. 
 
 In addition to the vision transformer architecture, we provide tools to train it in self-supervised fashion using techniques from [Bootstrap your own latent: A new approach to self-supervised Learning](https://arxiv.org/abs/2006.07733).
 
@@ -21,8 +22,7 @@ Enter it with
 
     docker-compose run dev
 
-    $ visiont
-    It works!
+    $ visiont --help
 
 ### Sample command
 

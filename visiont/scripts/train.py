@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim
 import torch.backends.cudnn
+
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import (
     Compose,
@@ -191,18 +192,17 @@ def main(args):
         y = nn.functional.normalize(y, dim=-1)
         return 2 - 2 * (x * y).sum(dim=-1)
 
-    lr = 1e-4
-
     # Online and predictor learns, target gets assigned moving average of online network's weights.
     # optimizer = torch.optim.Adam(list(online.parameters()) + list(predictor.parameters()), lr=lr)
     optimizer = torch.optim.SGD(
         list(online.parameters()) + list(predictor.parameters()), lr=lr
     )
 
-    # Warmup Adam, he cold
-    def adjust_learning_rate(optimizer, step, lr):
-        for g in optimizer.param_groups:
-            g["lr"] = min(1, (step + 1) / 1000) * lr
+    lr = 0.1
+    epochs = 15
+
+    optimizer = torch.optim.SGD(list(online.parameters()) + list(predictor.parameters()), lr=lr, momentum=0.9)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, steps_per_epoch=len(loader), epochs=epochs)
 
     scaler = torch.cuda.amp.GradScaler()
 
@@ -219,8 +219,6 @@ def main(args):
             # Overlap data transfers to gpus, pinned memory
             inputs1 = inputs1.to(device, non_blocking=True)
             inputs2 = inputs2.to(device, non_blocking=True)
-
-            adjust_learning_rate(optimizer, step, lr)
 
             optimizer.zero_grad()
 
@@ -248,6 +246,8 @@ def main(args):
 
             scaler.step(optimizer)
             scaler.update()
+
+            scheduler.step()
 
             # After training the online network, we transfer
             # a weighted average of the weights to the target
